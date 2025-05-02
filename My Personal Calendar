@@ -1,0 +1,194 @@
+import React, { useState } from 'react';
+import { useCalendar } from '../context/CalendarContext';
+import { getEventForDate } from '../data/importantEvents';
+import { MalayalamDate } from '../utils/dateConverter';
+import { Calendar as CalendarIcon, Star, Bell, Clock, Info } from 'lucide-react';
+
+interface EventDetailsProps {
+  selectedDate: Date;
+  malayalamDate: MalayalamDate | null;
+}
+
+const EventDetails: React.FC<EventDetailsProps> = ({ selectedDate, malayalamDate }) => {
+  const { events, toggleReminder, hasReminder, getReminderNote, updateReminderNote } = useCalendar();
+  const [reminderNote, setReminderNote] = useState('');
+  const [reminderTime, setReminderTime] = useState('09:00');
+  
+  // Find event for the selected date if any
+  const event = getEventForDate(selectedDate);
+  
+  const formatGregorianDate = (date: Date): string => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const dateHasReminder = hasReminder(selectedDate);
+  const existingReminder = getReminderNote(selectedDate);
+
+  // Get importance text based on event category
+  const getImportanceText = () => {
+    if (!event) return null;
+    
+    switch (event.category) {
+      case 'religious':
+        return 'This is an important religious observance day in Kerala, marked by special prayers and rituals.';
+      case 'festival':
+        return 'This is a major festival day celebrated with cultural events and traditional gatherings.';
+      case 'cultural':
+        return 'This day holds cultural significance in Kerala\'s traditional calendar.';
+      case 'historical':
+        return 'This day marks an important historical event in Kerala\'s history.';
+      default:
+        return null;
+    }
+  };
+  
+  return (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
+      <div className="bg-indigo-600 text-white p-6">
+        <h2 className="text-xl font-bold">Date Information</h2>
+      </div>
+      
+      <div className="p-6">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-gray-600 mb-2">
+            <CalendarIcon size={16} />
+            <h3 className="font-medium">Gregorian Date</h3>
+          </div>
+          <p className="text-xl font-semibold">{formatGregorianDate(selectedDate)}</p>
+        </div>
+        
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-gray-600 mb-2">
+            <CalendarIcon size={16} />
+            <h3 className="font-medium">Malayalam Date</h3>
+          </div>
+          {malayalamDate ? (
+            <div>
+              <p className="text-xl font-semibold">
+                <span className="font-malayalam">{malayalamDate.day}</span> {malayalamDate.month}, {malayalamDate.year}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                {malayalamDate.season} Season • {malayalamDate.nakshatra} Nakshatra
+              </p>
+            </div>
+          ) : (
+            <p className="text-gray-500">Converting date...</p>
+          )}
+        </div>
+
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-gray-600 mb-2">
+            <Bell size={16} />
+            <h3 className="font-medium">Reminder</h3>
+          </div>
+          
+          {!dateHasReminder && (
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="reminderTime" className="block text-sm font-medium text-gray-700 mb-1">
+                  Time
+                </label>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-gray-400" />
+                  <input
+                    type="time"
+                    id="reminderTime"
+                    value={reminderTime}
+                    onChange={(e) => setReminderTime(e.target.value)}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="reminderNote" className="block text-sm font-medium text-gray-700 mb-1">
+                  Note
+                </label>
+                <textarea
+                  id="reminderNote"
+                  rows={3}
+                  value={reminderNote}
+                  onChange={(e) => setReminderNote(e.target.value)}
+                  placeholder="Add a note for your reminder..."
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+            </div>
+          )}
+
+          {dateHasReminder && existingReminder && (
+            <div className="space-y-4 mb-4">
+              <div>
+                <label htmlFor="existingNote" className="block text-sm font-medium text-gray-700 mb-1">
+                  Reminder Note
+                </label>
+                <textarea
+                  id="existingNote"
+                  rows={3}
+                  value={existingReminder.note}
+                  onChange={(e) => updateReminderNote(selectedDate, e.target.value)}
+                  placeholder="Add a note for your reminder..."
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Clock size={14} />
+                <span>Reminder set for {existingReminder.time}</span>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => toggleReminder(selectedDate, reminderNote, reminderTime)}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${
+              dateHasReminder
+                ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Bell size={16} className={dateHasReminder ? 'fill-indigo-500' : ''} />
+            {dateHasReminder ? 'Remove Reminder' : 'Set Reminder'}
+          </button>
+        </div>
+        
+        {event ? (
+          <div className="mt-8 bg-amber-50 p-4 rounded-lg border border-amber-200">
+            <div className="flex items-center gap-2 text-amber-700 mb-2">
+              <Star size={16} className="fill-amber-500 text-amber-500" />
+              <h3 className="font-semibold">Important Day</h3>
+            </div>
+            <h4 className="text-lg font-bold text-amber-800">{event.name}</h4>
+            <p className="mt-2 text-amber-700">{event.description}</p>
+            
+            {getImportanceText() && (
+              <div className="mt-4 flex items-start gap-2 text-amber-700 bg-amber-100 p-3 rounded-lg">
+                <Info size={16} className="mt-1" />
+                <p className="text-sm">{getImportanceText()}</p>
+              </div>
+            )}
+            
+            {event.imageUrl && (
+              <div className="mt-4 rounded-lg overflow-hidden">
+                <img 
+                  src={event.imageUrl} 
+                  alt={event.name}
+                  className="w-full h-48 object-cover"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-8 bg-gray-50 p-4 rounded-lg text-gray-500 text-center">
+            No special events for this date
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default EventDetails;
